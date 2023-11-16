@@ -8,7 +8,7 @@ class Post(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     content = Column(String)
-    owner_id = Column(Integer, ForeignKey('users.id'))
+    owner_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"))
 
-    owner = relationship("User")
-    comments = relationship("Comment", back_populates="post", cascade="all, delete")
+    owner = relationship("User", back_populates="posts")
+    comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
