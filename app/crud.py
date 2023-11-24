@@ -77,13 +77,35 @@ def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
     return False
 
 def get_comments(db: Session, post_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
-    pass
+    return db.query(models.Comment)\
+            .filter(models.Comment.post_id == post_id)\
+            .order_by(models.Comment.created_at.desc())\
+            .offset(skip)\
+            .limit(limit)\
+            .all()
 
 def create_comment(db: Session, post_id: int, owner_id: int, comment: schemas.CommentCreate) -> Dict[str, Any]:
-    pass
+    new_comment = models.Comment(content=comment.content, post_id=post_id, owner_id=owner_id)
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+    return new_comment
 
 def update_comment(db: Session, id: int, comment: schemas.CommentUpdate) -> Union[Dict[str, Any], None]:
-    pass
+    old_comment = db.query(models.Comment).filter(models.Comment.id == id).first()
+    if old_comment:
+        if comment.content:
+            old_comment.content = comment.content
+        db.add(old_comment)
+        db.commit()
+        db.refresh(old_comment)
+        return old_comment
+    return None
 
 def delete_comment(db: Session, id: int) -> Union[Dict[str, Any], None]:
-    pass
+    old_comment = db.query(models.Comment).filter(models.Comment.id == id).first()
+    if old_comment:
+        db.delete(old_comment)
+        db.commit()
+        return True
+    return False
