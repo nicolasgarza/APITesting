@@ -38,19 +38,43 @@ def delete_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
     return False
 
 def get_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
-    pass
+    return db.query(models.Post).filter(models.Post.id == id).first()
 
 def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
-    pass
+    return db.query(models.Post)\
+            .filter(models.Post.owner_id == owner_id)\
+            .order_by(models.Post.created_at.desc())\
+            .offset(skip)\
+            .limit(limit)\
+            .all()
 
 def create_post(db: Session, owner_id: int, post: schemas.PostCreate) -> Dict[str, Any]:
-    pass
+    new_post = models.Post(title=post.title, content=post.content, owner_id=owner_id)
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+    return new_post
 
 def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[Dict[str, Any], None]:
-    pass
+    old_post = db.query(models.Post).filter(models.Post.id == id).first()
+    if old_post:
+        if post.title:
+            old_post.title = post.title
+        if post.content:
+            old_post.content = post.content
+        db.add(old_post)
+        db.commit()
+        db.refresh(old_post)
+        return old_post
+    return None
 
 def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
-    pass
+    old_post = db.query(models.Post).filter(models.Post.id == id).first()
+    if old_post:
+        db.delete(old_post)
+        db.commit()
+        return True
+    return False
 
 def get_comments(db: Session, post_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
     pass
