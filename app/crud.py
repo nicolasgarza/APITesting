@@ -10,12 +10,32 @@ def create_user(db: Session, user: schemas.UserCreate) -> Dict[str, Any]:
     new_user = models.User(username=user.username, email=user.email, hashed_password=user.password)
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
+    return new_user
 
 def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[Dict[str, Any], None]:
-    pass
+    old_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if old_user:
+        if user.username:
+            old_user.username = user.username
+        if user.email:
+            old_user.email = user.email
+        if user.password:
+            old_user.hashed_password = user.password
+        db.add(old_user)
+        db.commit()
+        db.refresh(old_user)
+        return old_user
+    return None
+
 
 def delete_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
-    pass
+    old_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if old_user:
+        db.delete(old_user)
+        db.commit()
+        return True
+    return False
 
 def get_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
     pass
