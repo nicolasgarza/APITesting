@@ -4,10 +4,12 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 def get_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
-    pass
+    return db.query(models.User).filter(models.User.id == user_id).first()
 
 def create_user(db: Session, user: schemas.UserCreate) -> Dict[str, Any]:
-    pass
+    new_user = models.User(username=user.username, email=user.email, hashed_password=user.password)
+    db.add(new_user)
+    db.commit()
 
 def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[Dict[str, Any], None]:
     pass
