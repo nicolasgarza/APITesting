@@ -8,39 +8,39 @@ async def get_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
     return result.scalars().first()
 
-def create_user(db: Session, user: schemas.UserCreate) -> Dict[str, Any]:
+async def create_user(db: Session, user: schemas.UserCreate) -> Dict[str, Any]:
     new_user = models.User(username=user.username, email=user.email, hashed_password=user.password)
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    await db.commit()
+    await db.refresh(new_user)
     return new_user
 
-def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[Dict[str, Any], None]:
-    old_user = db.query(models.User).filter(models.User.id == user_id).first()
+async def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[Dict[str, Any], None]:
+    result = await db.execute(select(models.User).filter(models.User.id == user_id))
+    old_user = result.scalars().first()
     if old_user:
-        if user.username is not None:
-            old_user.username = user.username
-        if user.email is not None:
-            old_user.email = user.email
-        if user.password is not None:
-            old_user.hashed_password = user.password
+        update_data = user.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(old_user, key, value) if value is not None else None
         db.add(old_user)
-        db.commit()
-        db.refresh(old_user)
+        await db.commit()
+        await db.refresh(old_user)
         return old_user
     return None
 
 
-def delete_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
-    old_user = db.query(models.User).filter(models.User.id == user_id).first()
+async def delete_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
+    result = await db.execute(select(models.User).filter(models.User.id == user_id))
+    old_user = result.scalars().first()
     if old_user:
-        db.delete(old_user)
-        db.commit()
-        return True
-    return False
+        await db.delete(old_user)
+        await db.commit()
+        return {"message": "User deleted successfully"}
+    return {"message": "User not found"}
 
-def get_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
-    return db.query(models.Post).filter(models.Post.id == id).first()
+async def get_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
+    result = await db.execute(select(models.Post).filter(models.Post.id == id))
+    return result.scalars().first()
 
 def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
     return db.query(models.Post)\

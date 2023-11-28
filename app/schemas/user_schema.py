@@ -6,7 +6,17 @@ class UserBase(BaseModel):
     username: str
 
 class UserCreate(UserBase):
+    email: EmailStr
+    username: str
     password: str
+
+class UserRead(UserBase):
+    id: int
+    email: EmailStr
+    username: str
+
+    class Config:
+        orm_mode = True
 
 class User(UserBase):
     id: int
