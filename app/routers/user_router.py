@@ -1,34 +1,20 @@
-from fastapi import APIRouter
-from fastapi import FastAPI, Depends
-from sqlalchemy import text
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select 
 
+from app.crud import get_user, create_user, update_user, delete_user
 from app.models.base import SessionLocal
-from app.models import user_model  
+from app.schemas import User, UserCreate, UserUpdate
 
 router = APIRouter()
-
-@router.get("/users")
-async def read_users():
-    return {"message": "List of all users"}
-
-@router.get("/users/{user_id}")
-async def read_user(user_id: int):
-    return {"user_id": user_id, "username": "Example User"}
 
 # Dependency to get the database session
 async def get_session() -> AsyncSession:
     async with SessionLocal() as session:
         yield session
 
-@router.get("/test_db")
-async def test_db(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(text("SELECT 1"))  
-    return result.scalars().all()
-
-@router.get("/items")
-async def read_items(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(user_model.User)) 
-    items = result.scalars().all()
-    return items
+@router.get("/users/{user_id}", response_model=User)
+async def read_user(user_id: int, session: AsyncSession = Depends(get_session)):
+    user = await get_user(session, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

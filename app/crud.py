@@ -1,10 +1,12 @@
-
 from typing import List, Dict, Any, Union
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from . import models, schemas
 
-def get_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
-    return db.query(models.User).filter(models.User.id == user_id).first()
+async def get_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
+    result = await db.execute(select(models.User).filter(models.User.id == user_id))
+    return result.scalars().first()
 
 def create_user(db: Session, user: schemas.UserCreate) -> Dict[str, Any]:
     new_user = models.User(username=user.username, email=user.email, hashed_password=user.password)
@@ -16,11 +18,11 @@ def create_user(db: Session, user: schemas.UserCreate) -> Dict[str, Any]:
 def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[Dict[str, Any], None]:
     old_user = db.query(models.User).filter(models.User.id == user_id).first()
     if old_user:
-        if user.username:
+        if user.username is not None:
             old_user.username = user.username
-        if user.email:
+        if user.email is not None:
             old_user.email = user.email
-        if user.password:
+        if user.password is not None:
             old_user.hashed_password = user.password
         db.add(old_user)
         db.commit()

@@ -13,3 +13,7 @@ class Post(PostBase):
 
     class Config:
         orm_mode = True
+
+class PostUpdate(PostBase):
+    title: str
+    body: str

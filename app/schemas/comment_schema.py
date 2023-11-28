@@ -13,3 +13,6 @@ class Comment(CommentBase):
 
     class Config:
         orm_mode = True 
+
+class CommentUpdate(CommentBase):
+    body: str
