@@ -13,7 +13,7 @@ async def get_session() -> AsyncSession:
         yield session
 
 @router.get("/users/{user_id}", response_model=User)
-async def read_user(user_id: int, session: AsyncSession = Depends(get_session)):
+async def get_user_endpoint(user_id: int, session: AsyncSession = Depends(get_session)):
     user = await get_user(session, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -36,6 +36,6 @@ async def update_user_endpoint(user: UserUpdate, user_id: int, session: AsyncSes
 @router.delete("/users/{user_id}")
 async def delete_user_endpoint(user_id: int, session: AsyncSession = Depends(get_session)):
     deleted_user = await delete_user(session, user_id)
-    if deleted_user is None:
+    if not deleted_user:
         raise HTTPException(status_code=404, detail="User not Found")
     return HTTPException(status_code=204, detail="User deleted successfully")

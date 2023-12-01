@@ -1,11 +1,27 @@
 from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+from sqlalchemy import DateTime
 
 class PostBase(BaseModel):
     title: str
-    body: str
+    content: str
 
 class PostCreate(PostBase):
-    pass
+    title: str
+    content: str
+    owner_id: int
+
+class PostRead(PostBase):
+    id: int
+    owner_id: int
+    title: str
+    content: str
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        orm_mode = True
 
 class Post(PostBase):
     id: int
@@ -15,5 +31,5 @@ class Post(PostBase):
         orm_mode = True
 
 class PostUpdate(PostBase):
-    title: str
-    body: str
+    title: Optional[str]
+    content: Optional[str]

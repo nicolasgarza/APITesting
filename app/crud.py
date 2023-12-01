@@ -35,8 +35,8 @@ async def delete_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
     if old_user:
         await db.delete(old_user)
         await db.commit()
-        return {"message": "User deleted successfully"}
-    return {"message": "User not found"}
+        return True
+    return False
 
 async def get_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
     result = await db.execute(select(models.Post).filter(models.Post.id == id))
@@ -50,31 +50,32 @@ def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> Un
             .limit(limit)\
             .all()
 
-def create_post(db: Session, owner_id: int, post: schemas.PostCreate) -> Dict[str, Any]:
-    new_post = models.Post(title=post.title, content=post.content, owner_id=owner_id)
+async def create_post(db: Session, post: schemas.PostCreate) -> Dict[str, Any]:
+    new_post = models.Post(title=post.title, content=post.content, owner_id=post.owner_id)
     db.add(new_post)
-    db.commit()
-    db.refresh(new_post)
+    await db.commit()
+    await db.refresh(new_post)
     return new_post
 
-def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[Dict[str, Any], None]:
-    old_post = db.query(models.Post).filter(models.Post.id == id).first()
+async def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[Dict[str, Any], None]:
+    result = await db.execute(select(models.Post).filter(models.Post.id == id))
+    old_post = result.scalars().first()
     if old_post:
-        if post.title:
-            old_post.title = post.title
-        if post.content:
-            old_post.content = post.content
+        update_data = post.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(old_post, key, value) if value is not None else None
         db.add(old_post)
-        db.commit()
-        db.refresh(old_post)
+        await db.commit()
+        await db.refresh(old_post)
         return old_post
     return None
 
-def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
-    old_post = db.query(models.Post).filter(models.Post.id == id).first()
+async def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
+    result = await db.execute(select(models.Post).filter(models.Post.id == id))
+    old_post = result.scalars().first()
     if old_post:
-        db.delete(old_post)
-        db.commit()
+        await db.delete(old_post)
+        await db.commit()
         return True
     return False
 
