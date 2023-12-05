@@ -79,19 +79,19 @@ async def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
         return True
     return False
 
-def get_comments(db: Session, post_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
-    return db.query(models.Comment)\
-            .filter(models.Comment.post_id == post_id)\
-            .order_by(models.Comment.created_at.desc())\
+async def get_comments(db: Session, post_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
+    result = await db.execute(select(models.Comment).filter(models.Comment.post_id==post_id))
+    comments = result.order_by(models.Comment.created_at.desc())\
             .offset(skip)\
             .limit(limit)\
             .all()
+    return comments
 
-def create_comment(db: Session, post_id: int, owner_id: int, comment: schemas.CommentCreate) -> Dict[str, Any]:
+async def create_comment(post_id: int, owner_id: int, comment: schemas.CommentCreate, db: Session ) -> Dict[str, Any]:
     new_comment = models.Comment(content=comment.content, post_id=post_id, owner_id=owner_id)
     db.add(new_comment)
-    db.commit()
-    db.refresh(new_comment)
+    await db.commit()
+    await db.refresh(new_comment)
     return new_comment
 
 def update_comment(db: Session, id: int, comment: schemas.CommentUpdate) -> Union[Dict[str, Any], None]:

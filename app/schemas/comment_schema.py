@@ -1,10 +1,19 @@
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
 
 class CommentBase(BaseModel):
-    body: str
+    content: str
 
-class CommentCreate(CommentBase):
-    pass
+class CommentRead(CommentBase):
+    id: int
+    post_id: int
+    owner_id: int 
+    content: str
+    created_at: datetime
+
+    class Config: 
+        orm_mode = True
 
 class Comment(CommentBase):
     id: int
@@ -14,5 +23,10 @@ class Comment(CommentBase):
     class Config:
         orm_mode = True 
 
+class CommentCreate(CommentBase):
+    post_id: int
+    owner_id: int
+    content: str
+
 class CommentUpdate(CommentBase):
-    body: str
+    content: Optional[str]
