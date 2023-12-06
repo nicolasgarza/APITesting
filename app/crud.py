@@ -80,11 +80,11 @@ async def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
     return False
 
 async def get_comments(db: Session, post_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
-    result = await db.execute(select(models.Comment).filter(models.Comment.post_id==post_id))
-    comments = result.order_by(models.Comment.created_at.desc())\
-            .offset(skip)\
-            .limit(limit)\
-            .all()
+    query = select(models.Comment).filter(models.Comment.post_id == post_id)\
+                    .order_by(models.Comment.created_at.desc())
+    query = query.offset(skip).limit(limit)
+    comments = await db.execute(query)
+    comments = comments.scalars().all()
     return comments
 
 async def create_comment(post_id: int, owner_id: int, comment: schemas.CommentCreate, db: Session ) -> Dict[str, Any]:
@@ -94,21 +94,23 @@ async def create_comment(post_id: int, owner_id: int, comment: schemas.CommentCr
     await db.refresh(new_comment)
     return new_comment
 
-def update_comment(db: Session, id: int, comment: schemas.CommentUpdate) -> Union[Dict[str, Any], None]:
-    old_comment = db.query(models.Comment).filter(models.Comment.id == id).first()
+async def update_comment(db: Session, id: int, comment: schemas.CommentUpdate) -> Union[Dict[str, Any], None]:
+    old_comment = await db.execute(select(models.Comment).filter(models.Comment.id == id))
+    old_comment = old_comment.scalars().first()
     if old_comment:
         if comment.content:
             old_comment.content = comment.content
         db.add(old_comment)
-        db.commit()
-        db.refresh(old_comment)
+        await db.commit()
+        await db.refresh(old_comment)
         return old_comment
     return None
 
-def delete_comment(db: Session, id: int) -> Union[Dict[str, Any], None]:
-    old_comment = db.query(models.Comment).filter(models.Comment.id == id).first()
+async def delete_comment(db: Session, id: int) -> Union[Dict[str, Any], None]:
+    old_comment = await db.execute(select(models.Comment).filter(models.Comment.id == id))
+    old_comment = old_comment.scalars().first()
     if old_comment:
-        db.delete(old_comment)
-        db.commit()
+        await db.delete(old_comment)
+        await db.commit()
         return True
     return False
