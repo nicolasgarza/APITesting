@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from typing import List
 from app.crud import get_post, get_posts, create_post, update_post, delete_post
 from app.models.base import SessionLocal
 from app.schemas import Post, PostRead, PostCreate, PostUpdate
@@ -13,9 +14,16 @@ async def get_session() -> AsyncSession:
         yield session
 
 @router.get("/posts/{post_id}", response_model=PostRead)
-async def read_pos_endpoint(post_id: int, session: AsyncSession = Depends(get_session)):
+async def read_post_endpoint(post_id: int, session: AsyncSession = Depends(get_session)):
     result = await get_post(session, post_id)
     return result
+
+@router.get("/users/{user_id}/posts", response_model=List[PostRead])
+async def read_users_posts_endpoint(user_id: int, session: AsyncSession = Depends(get_session)):
+    result = await get_posts(session, user_id)
+    if result is None:
+        return []
+    return [PostRead(**post.__dict__) for post in result]
 
 @router.post("/posts", response_model=PostRead)
 async def create_post_endpoint(post: PostCreate, session: AsyncSession = Depends(get_session)):

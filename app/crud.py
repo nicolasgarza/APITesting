@@ -42,13 +42,13 @@ async def get_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
     result = await db.execute(select(models.Post).filter(models.Post.id == id))
     return result.scalars().first()
 
-def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
-    return db.query(models.Post)\
-            .filter(models.Post.owner_id == owner_id)\
-            .order_by(models.Post.created_at.desc())\
-            .offset(skip)\
-            .limit(limit)\
-            .all()
+async def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
+    query = select(models.Post).filter(models.Post.owner_id == owner_id)\
+                .order_by(models.Post.created_at.desc())
+    query = query.offset(skip).limit(limit)
+    posts = await db.execute(query)
+    posts = posts.scalars().all()
+    return posts
 
 async def create_post(db: Session, post: schemas.PostCreate) -> Dict[str, Any]:
     new_post = models.Post(title=post.title, content=post.content, owner_id=post.owner_id)
