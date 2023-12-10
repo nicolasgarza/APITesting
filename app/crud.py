@@ -4,22 +4,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from . import models, schemas
 
-async def get_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
+async def get_user(db: Session, user_id: int) -> Union[schemas.User, None]:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
     return result.scalars().first()
 
-async def create_user(db: Session, user: schemas.UserCreate) -> Dict[str, Any]:
+async def create_user(db: Session, user: schemas.UserCreate) -> Union[schemas.User, None]:
     new_user = models.User(username=user.username, email=user.email, hashed_password=user.password)
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
     return new_user
 
-async def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[Dict[str, Any], None]:
+async def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[schemas.User, None]:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
     old_user = result.scalars().first()
     if old_user:
-        update_data = user.dict(exclude_unset=True)
+        update_data = user.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(old_user, key, value) if value is not None else None
         db.add(old_user)
@@ -28,8 +28,7 @@ async def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Un
         return old_user
     return None
 
-
-async def delete_user(db: Session, user_id: int) -> Union[Dict[str, Any], None]:
+async def delete_user(db: Session, user_id: int) -> bool:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
     old_user = result.scalars().first()
     if old_user:
