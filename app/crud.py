@@ -17,8 +17,12 @@ async def get_user(db: Session, user_id: int) -> Union[schemas.User, None]:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
     return result.scalars().first()
 
+async def get_user_by_username(db: Session, username: str) -> Union[schemas.User, None]:
+    result = await db.execute(select(models.User).filter(models.User.username == username))
+    return result.scalars().first()
+
 async def create_user(db: Session, user: schemas.UserCreate) -> Union[schemas.User, None]:
-    new_user = models.User(username=hash_password(user.username), email=user.email, hashed_password=user.password)
+    new_user = models.User(username=user.username, email=user.email, hashed_password=hash_password(user.password))
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)

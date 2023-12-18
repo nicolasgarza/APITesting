@@ -4,10 +4,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
-
+from app.schemas.token_schema import TokenData
 
 SECRET_KEY = "secret123"
 ALGORITHM = "HS256"
