@@ -2,14 +2,23 @@ from typing import List, Dict, Any, Union
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from passlib.context import CryptContext
 from . import models, schemas
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+# def verify_password(plain_password: str, hashed_password: str) -> bool:
+#     return pwd_context.verify(plain_password, hashed_password)
 
 async def get_user(db: Session, user_id: int) -> Union[schemas.User, None]:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
     return result.scalars().first()
 
 async def create_user(db: Session, user: schemas.UserCreate) -> Union[schemas.User, None]:
-    new_user = models.User(username=user.username, email=user.email, hashed_password=user.password)
+    new_user = models.User(username=hash_password(user.username), email=user.email, hashed_password=user.password)
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
@@ -20,6 +29,10 @@ async def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Un
     old_user = result.scalars().first()
     if old_user:
         update_data = user.model_dump(exclude_unset=True)
+        if 'password' in update_data:
+            hashed_password = hash_password(update_data['password'])
+            update_data['hashed_password'] = hashed_password
+            del update_data['password']
         for key, value in update_data.items():
             setattr(old_user, key, value) if value is not None else None
         db.add(old_user)
