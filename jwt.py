@@ -4,7 +4,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from app.schemas.token_schema import TokenData
+from app.schemas.token_schema import Token
 
 SECRET_KEY = "secret123"
 ALGORITHM = "HS256"
@@ -26,7 +26,7 @@ def verify_access_token(token: str):
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
-        token_data = TokenData(username=username)
+        token_data = Token(username=username)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     return token_data
