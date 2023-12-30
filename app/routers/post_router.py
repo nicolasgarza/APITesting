@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.crud import get_post, get_posts, create_post, update_post, delete_post
 from app.models.base import SessionLocal
-from app.schemas import Post, PostRead, PostCreate, PostUpdate
+from app.schemas import Post, PostRead, PostCreate, PostUpdate, Token
+from jwt import verify_access_token
 
 router = APIRouter()
 
@@ -26,11 +27,14 @@ async def read_users_posts_endpoint(user_id: int, session: AsyncSession = Depend
     return [PostRead(**post.__dict__) for post in result]
 
 @router.post("/posts", response_model=PostRead)
-async def create_post_endpoint(post: PostCreate, session: AsyncSession = Depends(get_session)):
+async def create_post_endpoint(post: PostCreate, 
+                               session: AsyncSession = Depends(get_session),
+                               user: Token = Depends(verify_access_token)
+                               ):
     created_post = await create_post(session, post)
     if created_post is None:
         raise HTTPException(status_code=400, detail="Error creating post")
-    return Post(**created_post.__dict__)
+    return created_post
 
 @router.put("/posts/{post_id}", response_model=PostRead)
 async def update_post_endpoint(post_id: int, post: PostUpdate, session: AsyncSession = Depends(get_session)):

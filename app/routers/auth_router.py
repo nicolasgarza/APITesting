@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.base import SessionLocal
@@ -13,7 +13,7 @@ async def get_session() -> AsyncSession:
 router = APIRouter()
 
 @router.post("/login", response_model=None)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
+async def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
     user = await get_user_by_username(session, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -22,4 +22,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(data={"sub": user.username})
-    return {"access_token": access_token, "token_type": "bearer"}
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=1800,
+        secure=True,
+        samesite='Lax'
+    )
+    return {"message": "Logged in successfully"}

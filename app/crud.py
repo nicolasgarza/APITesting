@@ -66,12 +66,19 @@ async def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100)
     posts = posts.scalars().all()
     return posts
 
-async def create_post(db: Session, post: schemas.PostCreate) -> Dict[str, Any]:
+async def create_post(db: Session, post: schemas.PostCreate) -> schemas.PostRead:
     new_post = models.Post(title=post.title, content=post.content, owner_id=post.owner_id)
     db.add(new_post)
     await db.commit()
     await db.refresh(new_post)
-    return new_post
+    return schemas.PostRead(
+        id=new_post.id,
+        owner_id=new_post.owner_id,
+        title=new_post.title,
+        content=new_post.content,
+        created_at=new_post.created_at,
+        updated_at=new_post.updated_at
+    )
 
 async def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[Dict[str, Any], None]:
     result = await db.execute(select(models.Post).filter(models.Post.id == id))
