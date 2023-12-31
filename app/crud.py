@@ -15,18 +15,24 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 async def get_user(db: Session, user_id: int) -> Union[schemas.User, None]:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
-    return result.scalars().first()
+    user = result.scalars().first()
+    if user:
+        return schemas.User(**user.__dict__)
+    return None
 
 async def get_user_by_username(db: Session, username: str) -> Union[schemas.User, None]:
     result = await db.execute(select(models.User).filter(models.User.username == username))
-    return result.scalars().first()
+    user = result.scalars().first()
+    if user:
+        return schemas.User(**user.__dict__)
+    return None
 
 async def create_user(db: Session, user: schemas.UserCreate) -> Union[schemas.User, None]:
     new_user = models.User(username=user.username, email=user.email, hashed_password=hash_password(user.password))
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    return new_user
+    return schemas.User(**user.__dict__)
 
 async def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Union[schemas.User, None]:
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
@@ -42,7 +48,7 @@ async def update_user(db: Session, user_id: int, user: schemas.UserUpdate) -> Un
         db.add(old_user)
         await db.commit()
         await db.refresh(old_user)
-        return old_user
+        return schemas.User(**old_user.__dict__)
     return None
 
 async def delete_user(db: Session, user_id: int) -> bool:
@@ -54,33 +60,32 @@ async def delete_user(db: Session, user_id: int) -> bool:
         return True
     return False
 
-async def get_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
+async def get_post(db: Session, id: int) -> Union[schemas.Post, None]:
     result = await db.execute(select(models.Post).filter(models.Post.id == id))
-    return result.scalars().first()
+    post = result.scalars().first()
+    if post:
+        return schemas.Post(**post.__dict__)
+    return None
 
-async def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
+async def get_posts(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> Union[List[schemas.Post], None]:
     query = select(models.Post).filter(models.Post.owner_id == owner_id)\
                 .order_by(models.Post.created_at.desc())
     query = query.offset(skip).limit(limit)
     posts = await db.execute(query)
     posts = posts.scalars().all()
-    return posts
+    if posts:
+        return [schemas.Post(**post.__dict__) for post in posts]
+    return None
 
 async def create_post(db: Session, post: schemas.PostCreate) -> schemas.PostRead:
     new_post = models.Post(title=post.title, content=post.content, owner_id=post.owner_id)
     db.add(new_post)
     await db.commit()
     await db.refresh(new_post)
-    return schemas.PostRead(
-        id=new_post.id,
-        owner_id=new_post.owner_id,
-        title=new_post.title,
-        content=new_post.content,
-        created_at=new_post.created_at,
-        updated_at=new_post.updated_at
-    )
+    return schemas.Post(**new_post.__dict__)
+    
 
-async def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[Dict[str, Any], None]:
+async def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[schemas.Post, None]:
     result = await db.execute(select(models.Post).filter(models.Post.id == id))
     old_post = result.scalars().first()
     if old_post:
@@ -90,7 +95,7 @@ async def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[D
         db.add(old_post)
         await db.commit()
         await db.refresh(old_post)
-        return old_post
+        return schemas.Post(**old_post.__dict__)
     return None
 
 async def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:

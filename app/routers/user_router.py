@@ -18,14 +18,14 @@ async def get_user_endpoint(user_id: int, session: AsyncSession = Depends(get_se
     user = await get_user(session, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return User(**user.__dict__)
+    return user
 
 @router.post("/users", response_model=UserRead)
 async def create_user_endpoint(user: UserCreate, session: AsyncSession = Depends(get_session)):
     created_user = await create_user(session, user)
     if created_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Error creating user")
-    return User(**created_user.__dict__)
+    return created_user
 
 @router.put("/users/{user_id}", response_model=UserRead)
 async def update_user_endpoint(user: UserUpdate, user_id: int, session: AsyncSession = Depends(get_session)):
