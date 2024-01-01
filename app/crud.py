@@ -98,7 +98,7 @@ async def update_post(db: Session, id: int, post: schemas.PostUpdate) -> Union[s
         return schemas.Post(**old_post.__dict__)
     return None
 
-async def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
+async def delete_post(db: Session, id: int) -> bool:
     result = await db.execute(select(models.Post).filter(models.Post.id == id))
     old_post = result.scalars().first()
     if old_post:
@@ -107,22 +107,26 @@ async def delete_post(db: Session, id: int) -> Union[Dict[str, Any], None]:
         return True
     return False
 
-async def get_comments(db: Session, post_id: int, skip: int = 0, limit: int = 100) -> Union[List[Dict[str, Any]], None]:
+async def get_comments(db: Session, post_id: int, skip: int = 0, limit: int = 100) -> Union[schemas.Comment, None]:
     query = select(models.Comment).filter(models.Comment.post_id == post_id)\
                     .order_by(models.Comment.created_at.desc())
     query = query.offset(skip).limit(limit)
     comments = await db.execute(query)
     comments = comments.scalars().all()
-    return comments
+    if comments:
+        return [schemas.Comment(**comment.__dict__) for comment in comments]
+    return None
 
-async def create_comment(post_id: int, owner_id: int, comment: schemas.CommentCreate, db: Session ) -> Dict[str, Any]:
+async def create_comment(post_id: int, owner_id: int, comment: schemas.CommentCreate, db: Session ) -> Union[schemas.Comment, None]:
     new_comment = models.Comment(content=comment.content, post_id=post_id, owner_id=owner_id)
     db.add(new_comment)
     await db.commit()
     await db.refresh(new_comment)
-    return new_comment
+    if new_comment:
+        return schemas.Comment(**new_comment.__dict__)
+    return None
 
-async def update_comment(db: Session, id: int, comment: schemas.CommentUpdate) -> Union[Dict[str, Any], None]:
+async def update_comment(db: Session, id: int, comment: schemas.CommentUpdate) -> Union[schemas.Comment, None]:
     old_comment = await db.execute(select(models.Comment).filter(models.Comment.id == id))
     old_comment = old_comment.scalars().first()
     if old_comment:
@@ -131,10 +135,10 @@ async def update_comment(db: Session, id: int, comment: schemas.CommentUpdate) -
         db.add(old_comment)
         await db.commit()
         await db.refresh(old_comment)
-        return old_comment
+        return schemas.Comment(**old_comment.__dict__)
     return None
 
-async def delete_comment(db: Session, id: int) -> Union[Dict[str, Any], None]:
+async def delete_comment(db: Session, id: int) -> bool:
     old_comment = await db.execute(select(models.Comment).filter(models.Comment.id == id))
     old_comment = old_comment.scalars().first()
     if old_comment:
