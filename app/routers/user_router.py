@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.crud import get_user, create_user, update_user, delete_user
 from app.models.base import SessionLocal
-from app.schemas import User, UserCreate, UserUpdate, UserRead
+from app.schemas import User, UserCreate, UserUpdate, UserRead, Token
+from jwt import verify_access_token
 
 router = APIRouter()
 
@@ -28,14 +29,19 @@ async def create_user_endpoint(user: UserCreate, session: AsyncSession = Depends
     return created_user
 
 @router.put("/users/{user_id}", response_model=UserRead)
-async def update_user_endpoint(user: UserUpdate, user_id: int, session: AsyncSession = Depends(get_session)):
+async def update_user_endpoint(user: UserUpdate, 
+                               user_id: int, 
+                               session: AsyncSession = Depends(get_session),
+                               verify_user: Token = Depends(verify_access_token)):
     updated_user = await update_user(session, user_id, user)
     if updated_user is None:
         raise HTTPException(status_code=404, detail="User not Found")
     return User(**updated_user.__dict__)
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
-async def delete_user_endpoint(user_id: int, session: AsyncSession = Depends(get_session)):
+async def delete_user_endpoint(user_id: int,
+                               session: AsyncSession = Depends(get_session),
+                               verify_user: Token = Depends(verify_access_token)):
     deleted_user = await delete_user(session, user_id)
     if not deleted_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not Found")
