@@ -28,3 +28,9 @@ class UserUpdate(UserBase):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     password: Optional[str] = None
+
+class UserFullInfo(BaseModel):
+    email: EmailStr
+    username: str
+    id: int
+    hashed_password: str

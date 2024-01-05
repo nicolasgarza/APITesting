@@ -33,26 +33,40 @@ async def create_post_endpoint(post: PostCreate,
                                session: AsyncSession = Depends(get_session),
                                user: Token = Depends(verify_access_token)
                                ):
+    if post.owner_id != user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create post under another user")
     created_post = await create_post(session, post)
     if created_post is None:
         raise HTTPException(status_code=400, detail="Error creating post")
     return created_post
 
 @router.put("/posts/{post_id}", response_model=PostRead)
-async def update_post_endpoint(post_id: int, post: PostUpdate, 
+async def update_post_endpoint(post_id: int, new_post: PostUpdate, 
                                session: AsyncSession = Depends(get_session),
                                user: Token = Depends(verify_access_token)
                                ):
-    updated_post = await update_post(session, post_id, post)
-    if updated_post is None:
-        raise HTTPException(status_code=404, detail="Post not found")
+    post = await get_post(session, post_id)
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    
+    if post.owner_id != user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this post")
+    
+    updated_post = await update_post(session, post_id, new_post)
+    
     return updated_post
 
 @router.delete("/posts/{post_id}", status_code=status.HTTP_200_OK)
-async def delete_user_endpoint(post_id: int, 
+async def delete_post_endpoint(post_id: int, 
                                session: AsyncSession = Depends(get_session),
                                user: Token = Depends(verify_access_token)):
-    deleted_post = await delete_post(session, post_id)
-    if not deleted_post:
+    post = await get_post(session, post_id)
+    if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    
+    if post.owner_id != user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this post")
+    
+    await delete_post(session, post_id)
+
     return {"detail": "Post deleted successfully"}
