@@ -21,14 +21,14 @@ class PostRead(PostBase):
     updated_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Post(PostBase):
     id: int
     owner_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PostUpdate(PostBase):
     title: Optional[str]

@@ -13,7 +13,7 @@ class CommentRead(CommentBase):
     created_at: datetime
 
     class Config: 
-        orm_mode = True
+        from_attributes = True
 
 class Comment(CommentBase):
     id: int
@@ -21,7 +21,7 @@ class Comment(CommentBase):
     owner_id: int
 
     class Config:
-        orm_mode = True 
+        from_attributes = True
 
 class CommentCreate(CommentBase):
     post_id: int
