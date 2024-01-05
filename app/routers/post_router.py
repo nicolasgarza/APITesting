@@ -39,14 +39,16 @@ async def create_post_endpoint(post: PostCreate,
     return created_post
 
 @router.put("/posts/{post_id}", response_model=PostRead)
-async def update_post_endpoint(post_id: int, post: PostUpdate, session: AsyncSession = Depends(get_session)):
+async def update_post_endpoint(post_id: int, post: PostUpdate, session: AsyncSession = Depends(get_session),
+                               user: Token = Depends(verify_access_token)):
     updated_post = await update_post(session, post_id, post)
     if updated_post is None:
         raise HTTPException(status_code=404, detail="Post not found")
     return updated_post
 
 @router.delete("/posts/{post_id}", status_code=status.HTTP_200_OK)
-async def delete_user_endpoint(post_id: int, session: AsyncSession = Depends(get_session)):
+async def delete_user_endpoint(post_id: int, session: AsyncSession = Depends(get_session),
+                               user: Token = Depends(verify_access_token)):
     deleted_post = await delete_post(session, post_id)
     if not deleted_post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
