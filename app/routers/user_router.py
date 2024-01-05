@@ -29,7 +29,9 @@ async def create_user_endpoint(user: UserCreate, session: AsyncSession = Depends
     return created_user
 
 @router.put("/users/{user_id}", response_model=UserRead)
-async def update_user_endpoint(user: UserUpdate, user_id: int, session: AsyncSession = Depends(get_session),
+async def update_user_endpoint(user: UserUpdate, 
+                               user_id: int, 
+                               session: AsyncSession = Depends(get_session),
                                verify_user: Token = Depends(verify_access_token)):
     updated_user = await update_user(session, user_id, user)
     if updated_user is None:
@@ -37,8 +39,9 @@ async def update_user_endpoint(user: UserUpdate, user_id: int, session: AsyncSes
     return User(**updated_user.__dict__)
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
-async def delete_user_endpoint(user_id: int, session: AsyncSession = Depends(get_session),
-                               user: Token = Depends(verify_access_token)):
+async def delete_user_endpoint(user_id: int,
+                               session: AsyncSession = Depends(get_session),
+                               verify_user: Token = Depends(verify_access_token)):
     deleted_user = await delete_user(session, user_id)
     if not deleted_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not Found")
