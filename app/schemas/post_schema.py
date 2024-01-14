@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, ConfigDict
+from typing import Optional, ClassVar
 from datetime import datetime
 from sqlalchemy import DateTime
 
@@ -20,15 +20,13 @@ class PostRead(PostBase):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    Config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
 class Post(PostBase):
     id: int
     owner_id: int
 
-    class Config:
-        from_attributes = True
+    Config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
 class PostUpdate(PostBase):
     title: Optional[str]

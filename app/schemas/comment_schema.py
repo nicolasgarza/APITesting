@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, ClassVar
 
 class CommentBase(BaseModel):
     content: str
@@ -12,16 +12,14 @@ class CommentRead(CommentBase):
     content: str
     created_at: datetime
 
-    class Config: 
-        from_attributes = True
+    Config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
 class Comment(CommentBase):
     id: int
     post_id: int
     owner_id: int
 
-    class Config:
-        from_attributes = True
+    Config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
 class CommentCreate(CommentBase):
     post_id: int

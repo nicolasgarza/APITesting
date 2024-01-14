@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.crud import get_comment, get_comments, create_comment, update_comment, delete_comment
 from app.models.base import SessionLocal
-from app.schemas import Comment, CommentRead, CommentCreate, CommentUpdate, Token
+from app.schemas import Comment, CommentRead, CommentCreate, CommentUpdate, Token, CommentBase
 from jwt import verify_access_token
 
 router = APIRouter()
@@ -25,7 +25,7 @@ async def get_comments_endpoint(post_id: int, session: AsyncSession = Depends(ge
 @router.post("/posts/{post_id}/comments/{owner_id}", response_model=CommentRead)
 async def post_comment_endpoint(post_id: int,
                                 owner_id: int, 
-                                comment: CommentCreate, 
+                                comment: CommentBase, 
                                 session: AsyncSession = Depends(get_session),
                                 user: Token = Depends(verify_access_token)):
     if owner_id != user.user_id:
