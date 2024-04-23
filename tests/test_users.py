@@ -1,50 +1,80 @@
 from fastapi.testclient import TestClient
-from fastapi import FastAPI, Depends
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from main import app as fastapi_app
+from typing import AsyncGenerator
 import pytest
-import pytest_asyncio
-import asyncio
 from httpx import AsyncClient
-from app.routers.user_router import get_session as get_db
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=create_async_engine("postgresql+asyncpg://postgres:ally@localhost:1234/postgres"), class_=AsyncSession)
+# Assuming environment variable or separate config for test database URI
+TEST_DATABASE_URL = "postgresql+asyncpg://postgres:ally@localhost:1234/test_db"
+
+SessionLocal = sessionmaker(
+    autocommit=False, 
+    autoflush=False, 
+    bind=create_async_engine(TEST_DATABASE_URL, echo=True),
+    class_=AsyncSession
+)
+
+# Dependency to get the database session
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with SessionLocal() as session:
+        yield session
 
 @pytest.fixture(scope="function")
 async def override_get_db():
-   async with SessionLocal() as db:
-        db.begin_ntested()
+    async with SessionLocal() as db:
+        # Use nested transactions for test isolation
+        transaction = await db.begin_nested()
         try:
-           yield db
+            yield db
         finally:
-           await db.rollback()
+            await transaction.rollback()
 
 @pytest.fixture(scope="function")
 def test_app(override_get_db):
-    fastapi_app.dependency_overrides[get_db] = override_get_db
+    fastapi_app.dependency_overrides[get_session] = override_get_db
     return fastapi_app
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     loop = asyncio.new_event_loop()
+#     yield loop
+#     loop.close()
 
 @pytest_asyncio.fixture(scope="function")
 async def async_client(test_app):
     async with AsyncClient(app=test_app, base_url="http://test", headers={"Content-Type": "application/json"}) as ac:
         yield ac
 
+# Tests remain the same
+
 pytestmark = pytest.mark.asyncio
 
-async def test_read_user(async_client):
-    response = await async_client.get("/users/7")
+@pytest_asyncio.fixture(scope="function")
+async def test_user(override_get_db):
+    async for db in override_get_db:
+        # from app.models import User
+        # user = User(email="test@test.com", username="testuser", hashed_password="testpass")
+        # db.add(user)
+        # await db.commit()
+        # await db.refresh(user)
+        # yield user
+        from app.crud import create_user
+        from app.schemas import UserCreate
+        user_data = UserCreate(email="test@test.com", username="testuser", password="testpass")
+        created_user = await create_user(db, user_data)
+        yield created_user
+
+@pytest.mark.asyncio
+async def test_read_user(async_client, test_user):
+    response = await async_client.get(f"/users/{test_user.id}")
     assert response.status_code == 200
     assert response.json() == {
-        "email": "7user@example.com",
-        "username": "user3",
-        "id": 7
+        "email": test_user.email,
+        "username": test_user.username,
+        "id": test_user.id
     }
 
 async def test_create_user(async_client):

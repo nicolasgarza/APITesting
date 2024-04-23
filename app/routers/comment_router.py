@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from typing import List
+from typing import List, AsyncGenerator
 from app.crud import get_comment, get_comments, create_comment, update_comment, delete_comment
 from app.models.base import SessionLocal
 from app.schemas import Comment, CommentRead, CommentCreate, CommentUpdate, Token, CommentBase
@@ -10,7 +10,7 @@ from jwt import verify_access_token
 router = APIRouter()
 
 # Dependency to get the database session
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:
         yield session
 
