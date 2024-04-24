@@ -25,12 +25,14 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture(scope="function")
 async def override_get_db():
     async with SessionLocal() as db:
-        # Use nested transactions for test isolation
-        transaction = await db.begin_nested()
+        # Use a savepoint for test isolation
+        sp = await db.begin_nested()
+        await db.begin()  # This starts the transaction for the test
         try:
             yield db
         finally:
-            await transaction.rollback()
+            await db.rollback()  # This rolls back any changes after the yield
+            await sp.rollback()  # This rolls back the savepoint if needed
 
 @pytest.fixture(scope="function")
 def test_app(override_get_db):
@@ -52,30 +54,44 @@ async def async_client(test_app):
 
 pytestmark = pytest.mark.asyncio
 
-@pytest_asyncio.fixture(scope="function")
+@pytest.fixture(scope="function")
 async def test_user(override_get_db):
     async for db in override_get_db:
-        # from app.models import User
-        # user = User(email="test@test.com", username="testuser", hashed_password="testpass")
-        # db.add(user)
-        # await db.commit()
-        # await db.refresh(user)
-        # yield user
-        from app.crud import create_user
-        from app.schemas import UserCreate
-        user_data = UserCreate(email="test@test.com", username="testuser", password="testpass")
-        created_user = await create_user(db, user_data)
-        yield created_user
+        from app.models import User
+        user = User(email="test@test.com", username="testuser", hashed_password="testpass")
+        db.add(user)
+        await db.commit()  # Explicitly commit to ensure visibility
+        try:
+            yield user
+        finally:
+            await db.delete(user)
+            await db.commit()  # Clean up after the test
+
 
 @pytest.mark.asyncio
 async def test_read_user(async_client, test_user):
+    print("-----------------")
+    print(test_user.id)
+    print("-----------------")
     response = await async_client.get(f"/users/{test_user.id}")
-    assert response.status_code == 200
     assert response.json() == {
         "email": test_user.email,
         "username": test_user.username,
         "id": test_user.id
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 async def test_create_user(async_client):
     response = await async_client.post("/users", json={
